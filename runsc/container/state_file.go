@@ -199,6 +199,11 @@ func LoadSandbox(rootDir, id string, opts LoadOpts) ([]*Container, error) {
 }
 
 func findContainerID(rootDir, partialID string) (FullID, error) {
+	// Prefer an exact container ID before treating the ID as a prefix.
+	exactPattern := buildPath(rootDir, FullID{SandboxID: "*", ContainerID: partialID}, stateFileExtension)
+	if exact, err := filepath.Glob(exactPattern); err == nil && len(exact) == 1 {
+		return parseFileName(filepath.Base(exact[0]))
+	}
 	// Check whether the id fully specifies an existing container.
 	pattern := buildPath(rootDir, FullID{SandboxID: "*", ContainerID: partialID + "*"}, stateFileExtension)
 	list, err := filepath.Glob(pattern)

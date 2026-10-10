@@ -53,6 +53,7 @@ go_test(
         "console_test.go",
         "container_save_restore_test.go",
         "container_test.go",
+        "state_file_exact_match_cf_gate_test.go",
         "metric_server_test.go",
         "multi_container_save_restore_test.go",
         "multi_container_test.go",

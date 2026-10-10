@@ -74,6 +74,7 @@ go_test(
     srcs = [
         "metrics_test.go",
         "network_test.go",
+        "network_peer_addr_cf_gate_test.go",
         "sandbox_test.go",
     ],
     library = ":sandbox",

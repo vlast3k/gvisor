@@ -258,22 +258,44 @@ func addrBitLength(ip net.IP) int {
 	return 8 * net.IPv6len
 }
 
+func findLinkAddress(existing []netlink.Addr, ipNet *net.IPNet) *netlink.Addr {
+	for i := range existing {
+		addr := &existing[i]
+		if addr.IPNet == nil || !addr.IPNet.IP.Equal(ipNet.IP) {
+			continue
+		}
+		existingPrefix, _ := addr.IPNet.Mask.Size()
+		wantedPrefix, _ := ipNet.Mask.Size()
+		if existingPrefix == wantedPrefix {
+			return addr
+		}
+	}
+	return nil
+}
+
 // removeLinkAddresses removes IP addresses from the host NIC for a link.
 func removeLinkAddresses(linkName string, addresses []boot.IPWithPrefix) error {
 	ifaceLink, err := netlink.LinkByName(linkName)
 	if err != nil {
 		return fmt.Errorf("getting link for interface %q: %w", linkName, err)
 	}
+	existing, err := netlink.AddrList(ifaceLink, netlink.FAMILY_ALL)
+	if err != nil {
+		return fmt.Errorf("listing addresses for interface %q: %w", linkName, err)
+	}
 	for _, addr := range addresses {
 		ipNet := &net.IPNet{
 			IP:   addr.Address,
 			Mask: net.CIDRMask(addr.PrefixLen, addrBitLength(addr.Address)),
 		}
-		if err := removeAddress(ifaceLink, ipNet.String()); err != nil {
-			// If we encounter an error while deleting the ip,
-			// verify the ip is still present on the interface.
-			if present, err := isAddressOnInterface(linkName, ipNet); err != nil {
-				return fmt.Errorf("checking if address %v is on interface %q: %w", ipNet, linkName, err)
+		nlAddr := findLinkAddress(existing, ipNet)
+		if nlAddr == nil {
+			// Already gone.
+			continue
+		}
+		if err := netlink.AddrDel(ifaceLink, nlAddr); err != nil {
+			if present, perr := isAddressOnInterface(linkName, ipNet); perr != nil {
+				return fmt.Errorf("checking if address %v is on interface %q: %w", ipNet, linkName, perr)
 			} else if !present {
 				continue
 			}

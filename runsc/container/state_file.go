@@ -217,6 +217,19 @@ func findContainerID(rootDir, partialID string) (FullID, error) {
 		return parseFileName(filepath.Base(list[0]))
 	}
 
+	// If every prefix hit is a child ID, the requested parent does not exist.
+	allChildren := true
+	for _, p := range list {
+		full, perr := parseFileName(filepath.Base(p))
+		if perr != nil || !strings.HasPrefix(full.ContainerID, partialID+"-") {
+			allChildren = false
+			break
+		}
+	}
+	if allChildren {
+		return FullID{}, os.ErrNotExist
+	}
+
 	// Now see whether id could be an abbreviation of exactly 1 of the
 	// container ids. If id is ambiguous (it could match more than 1
 	// container), it is an error.

@@ -186,6 +186,7 @@ func TestCalculateCPUNum(t *testing.T) {
 		cpuQuota        int64
 		cpuPeriod       int64
 		cpuNumFromQuota bool
+		cpuNumCap       int
 		want            int
 	}{
 		{
@@ -222,6 +223,27 @@ func TestCalculateCPUNum(t *testing.T) {
 			cpuNumFromQuota: true,
 			want:            4,
 		},
+		{
+			name:      "sandbox CPU cap lowers cpuset count",
+			numCPU:    16,
+			cpuNumCap: 2,
+			want:      2,
+		},
+		{
+			name:            "quota below sandbox CPU cap wins",
+			numCPU:          16,
+			cpuQuota:        100000,
+			cpuPeriod:       100000,
+			cpuNumFromQuota: true,
+			cpuNumCap:       4,
+			want:            2,
+		},
+		{
+			name:      "zero sandbox CPU cap is disabled",
+			numCPU:    8,
+			cpuNumCap: 0,
+			want:      8,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cg := &fakeCgroup{
@@ -230,7 +252,7 @@ func TestCalculateCPUNum(t *testing.T) {
 				cpuQuota:  tc.cpuQuota,
 				cpuPeriod: tc.cpuPeriod,
 			}
-			gotNum, gotQuota, gotPeriod, err := calculateCPUNum(cg, tc.cpuNumFromQuota)
+			gotNum, gotQuota, gotPeriod, err := calculateCPUNum(cg, tc.cpuNumFromQuota, tc.cpuNumCap)
 			if err != nil {
 				t.Fatalf("calculateCPUNum failed: %v", err)
 			}

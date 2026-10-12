@@ -321,6 +321,10 @@ type Config struct {
 	// E.g. 0.2 CPU quota will result in 1, and 1.9 in 2.
 	CPUNumFromQuota bool `flag:"cpu-num-from-quota"`
 
+	// SandboxCPUNumCap limits the CPU count exposed to each sandbox. Zero
+	// disables the cap.
+	SandboxCPUNumCap int `flag:"sandbox-cpu-num-cap"`
+
 	// Allows overriding of flags in OCI annotations.
 	AllowFlagOverride bool `flag:"allow-flag-override"`
 

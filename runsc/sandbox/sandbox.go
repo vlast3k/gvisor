@@ -1398,7 +1398,7 @@ func (s *Sandbox) createSandboxProcess(conf *config.Config, args *Args, startSyn
 
 	mem := totalSysMem
 	if s.CgroupJSON.Cgroup != nil {
-		cpuNum, cpuQuota, cpuPeriod, err := calculateCPUNum(s.CgroupJSON.Cgroup, conf.CPUNumFromQuota)
+		cpuNum, cpuQuota, cpuPeriod, err := calculateCPUNum(s.CgroupJSON.Cgroup, conf.CPUNumFromQuota, conf.SandboxCPUNumCap)
 		if err != nil {
 			return err
 		}
@@ -1517,7 +1517,7 @@ func spawnFDParking(ring *os.File, pid int) error {
 
 // calculateCPUNum calculates the number of CPUs to configure for the sandbox,
 // along with the cgroup CPU quota and period.
-func calculateCPUNum(cg cgroup.Cgroup, cpuNumFromQuota bool) (int, int64, int64, error) {
+func calculateCPUNum(cg cgroup.Cgroup, cpuNumFromQuota bool, cpuNumCap int) (int, int64, int64, error) {
 	cpuNum, err := cg.NumCPU()
 	if err != nil {
 		log.Warningf("Failed to get cpu count from cgroups: %v. Falling back to runtime.NumCPU()", err)
@@ -1547,6 +1547,9 @@ func calculateCPUNum(cg cgroup.Cgroup, cpuNumFromQuota bool) (int, int64, int64,
 				cpuNum = n
 			}
 		}
+	}
+	if cpuNumCap > 0 && cpuNumCap < cpuNum {
+		cpuNum = cpuNumCap
 	}
 	return cpuNum, cpuQuota, cpuPeriod, nil
 }
